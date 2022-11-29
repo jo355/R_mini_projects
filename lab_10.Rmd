@@ -1,0 +1,163 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+```
+```{r}
+library(quantmod)
+getSymbols("MSFT")
+```
+
+
+```{r}
+summary(MSFT)
+```
+```{r}
+library(xts)
+```
+```{r}
+library(rvest)
+library(tidyverse)
+library(stringr)
+library(forcats)
+library(lubridate)
+```
+
+
+```{r}
+
+library(plotly)
+library(dplyr)
+```
+
+
+```{r}
+
+library(PerformanceAnalytics)
+```
+
+
+```{r}
+getSymbols("AMZN",from="2010-11-01",to="2020-11-17")
+```
+```{r}
+AMZN_log_returns<-AMZN%>%Ad()%>%dailyReturn(type='log')
+head(AMZN_log_returns)
+```
+```{r}
+getSymbols("GOOGL",from="2010-11-01", to="2020-11-17")
+getSymbols("AAPL",from="2010-11-01", to="2020-11-17")
+getSymbols("FB",from="2010-11-01", to="2020-11-17")
+```
+
+
+
+```{r}
+AMZN%>%Ad()%>%chartSeries()#Amazon's Price chart
+```
+```{r}
+AMZN%>%chartSeries(TA='addBBands();addVo();addMACD()',subset='2020')
+#prints Bollinger Band chart
+#,% Bollinger change, Volume Traded and 
+#Moving Average Convergence Diverence- indicates when to buy or sell stock(if below line-sell)
+```
+```{r}
+#Comparison of Amazon with other stocks
+library(PerformanceAnalytics)
+data<-cbind(diff(log(Cl(AMZN))),diff(log(Cl(GOOGL))),diff(log(Cl(AAPL))),diff(log(Cl(FB))))
+chart.Correlation(data)
+```
+```{r}
+#Above chart indicates that Apple and Facebook have the lowest correlation-0.40 and 
+#Google and Amazon have highest correlation- 0.58 
+```
+```{r}
+#Mean of log return -risk Standard Deviation of log return- Reward
+GOOGL_log_returns<-GOOGL%>%Ad()%>%dailyReturn(type='log')
+AAPL_log_returns<-AAPL%>%Ad()%>%dailyReturn(type='log')
+FB_log_returns<-FB%>%Ad()%>%dailyReturn(type='log')
+```
+
+
+```{r}
+#Plotting Risk vs Reward graph
+risk<-c(mean(AMZN_log_returns),mean(GOOGL_log_returns),mean(AAPL_log_returns),mean(FB_log_returns))
+reward<-c(sd(AMZN_log_returns),sd(GOOGL_log_returns),sd(AAPL_log_returns),sd(FB_log_returns))
+Name<-c("Amazon","Google","Apple","FB")
+df <- data.frame(risk,reward,Name)
+```
+```{r}
+plot(reward,risk,pch=19,col=4 ,cex = 1, lty = "solid", lwd = 2)   # Grid line width
+text(reward, risk, labels=Name, cex= 0.7)
+```
+```{r}
+#Above chart indicates that FB is ideal for risk adverse investment
+#Price Prediction in Amazon stocks
+mu<-mean(AMZN_log_returns) # mean of log returns
+sig<-sd(AMZN_log_returns) # sd of log returns 
+price<-rep(NA,252*4)
+```
+```{r}
+
+```
+
+
+```{r}
+library(detectR)
+```
+
+
+```{r}
+#start simulating prices
+for(i in 2:length(testsim)){
+  price[i]<-price[i-1]*exp(rnorm(1,mu,sig))
+}
+random_data<-cbind(price,1:(252*4))
+colnames(random_data)<-c("Price","Day")
+random_data<-as.data.frame(random_data)
+random_data%>%ggplot(aes(Day,Price))+geom_line()+labs(title="Amazon (AMZN) price simulation for 4 years")+theme_bw()
+```
+```{r}
+#for stable prediction, the price simulation needs to use the monte carlo method, where the prices are simulated repeatedly for accuracy.
+#Monte-Carlo method for price prediction
+N<-500
+mc_matrix<-matrix(nrow=252*4,ncol=N)
+mc_matrix[1,1]<-as.numeric(AMZN$AMZN.Adjusted[length(AMZN$AMZN.Adjusted),])
+for(j in 1:ncol(mc_matrix)){
+  mc_matrix[1,j]<-as.numeric(AMZN$AMZN.Adjusted[length(AMZN$AMZN.Adjusted),])
+for(i in 2:nrow(mc_matrix)){
+  mc_matrix[i,j]<-mc_matrix[i-1,j]*exp(rnorm(1,mu,sig))
+}
+}
+name<-str_c("Sim ",seq(1,500))
+name<-c("Day",name)
+final_mat<-cbind(1:(252*4),mc_matrix)
+final_mat<-as.tibble(final_mat)
+colnames(final_mat)<-name
+dim(final_mat) #1008 501
+final_mat%>%gather("Simulation","Price",2:501)%>%ggplot(aes(x=Day,y=Price,Group=Simulation))+geom_line(alpha=0.2)+labs(title="Amazon Stock (AMZN): 500 Monte Carlo Simulations for 4 Years")+theme_bw()
+```
+```{r}
+
+```
+
+
+```{r}
+final_mat[500,-1]%>%as.numeric()%>%quantile()
+#We can infer that the price might rise to $19,865 in four years or fall to $1302 
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
